@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wellness Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .summary-card {
+            border-left: 4px solid;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Navigation -->
+        <nav class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <span class="text-xl font-semibold text-primary-600 dark:text-primary-400">Wellness Tracker</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button id="theme-toggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 01-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd" />
+                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block dark:hidden" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                            </svg>
+                        </button>
+                        <div id="auth-buttons" class="flex space-x-2">
+                            <button id="login-btn" class="px-4 py-2 rounded-md bg-primary-500 text-white hover:bg-primary-600 transition-colors">Login</button>
+                            <button id="signup-btn" class="px-4 py-2 rounded-md bg-green-500 text-white hover:bg-green-600 transition-colors">Sign Up</button>
+                        </div>
+                        <div id="user-menu" class="hidden items-center space-x-4">
+                            <span id="username" class="text-gray-700 dark:text-gray-300"></span>
+                            <button id="logout-btn" class="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow transition-opacity duration-300">
+            <!-- Auth Pages -->
+            <div id="auth-pages" class="max-w-md mx-auto mt-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md transition-opacity duration-300 fade-in">
+                <!-- Login Form -->
+                <div id="login-form" class="hidden">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-200">Login to Your Account</h2>
+                    <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                        <p class="text-sm text-blue-700 dark:text-blue-300">Use demo@wellness.com / Demo123! for demo access</p>
+                    </div>
+                    <form>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="login-email">Email</label>
+                            <input type="email" id="login-email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" placeholder="Email" value="demo@wellness.com">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="login-password">Password</label>
+                            <input type="password" id="login-password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Password" value="Demo123!">
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <button type="button" id="do-login" class="bg-primary-500 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Sign In</button>
+                            <a class="inline-block align-baseline font-bold text-sm text-primary-500 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300" href="#">Forgot Password?</a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Signup Form -->
+                <div id="signup-form" class="hidden">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-200">Create an Account</h2>
+                    <form>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="signup-name">Full Name</label>
+                            <input type="text" id="signup-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" placeholder="Full Name">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="signup-email">Email</label>
+                            <input type="email" id="signup-email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" placeholder="Email">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="signup-password">Password</label>
+                            <input type="password" id="signup-password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" placeholder="Password">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="signup-confirm">Confirm Password</label>
+                            <input type="password" id="signup-confirm" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="Confirm Password">
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <button type="button" id="do-signup" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Register</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 hidden fade-in">
+                <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-8">Dashboard</h1>
+                
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="summary-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card-hover" style="border-left-color: #3b82f6;">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h2 class="text-gray-500 dark:text-gray-400 text-sm font-medium">Latest Steps</h2>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-gray-200" id="latest-steps">8,542</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card-hover" style="border-left-color: #10b981;">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100 dark:bg-green-900/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h2 class="text-gray-500 dark:text-gray-400 text-sm font-medium">Sleep Hours</h2>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-gray-200" id="latest-sleep">7.2</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card-hover" style="border-left-color: #f59e0b;">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <h2 class="text-gray-500 dark:text-gray-400 text-sm font-medium">Mood</h2>
+                                <p class="text-2xl font-bold text-gray-800 dark:text-gray-200" id="latest-mood">Good</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card-hover">
+                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Weekly Steps Trend</h2>
+                        <canvas id="steps-chart" height="300"></canvas>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card-hover">
+                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">Sleep Quality</h2>
+                        <canvas id="sleep-chart" height="300"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Actions -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 card-hover">
+                    <div class="flex flex-col sm:flex-row justify-between items-center">
+                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4 sm:mb-0">Daily Entries</h2>
+                        <div class="flex space-x-4">
+                            <button id="export-csv" class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600 transition-colors flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Export CSV
+                            </button>
+                            <button id="export-pdf" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Export PDF
+                            </button>
+                            <button id="add-entry" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Add Entry
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Entries List -->
+                <div id="entries-list" class="mt-6 grid grid-cols-1 gap-4">
+                    <!-- Entries will be dynamically added here -->
+                </div>
+            </div>
+
+            <!-- Entry Form Modal -->
+            <div id="entry-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4 transition-opacity duration-300">
+                    <div class="border-b px-6 py-4">
+                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200" id="modal-title">Add New Entry</h2>
+                    </div>
+                    <div class="px-6 py-4">
+                        <form id="entry-form">
+                            <input type="hidden" id="entry-id">
+                            <div class="mb-4">
+                                <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="entry-date">Date</label>
+                                <input type="date" id="entry-date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="entry-steps">Steps</label>
+                                <input type="number" id="entry-steps" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" min="0" placeholder="Number of steps" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="entry-sleep">Sleep Hours</label>
+                                <input type="number" id="entry-sleep" step="0.1" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" min="0" max="24" placeholder="Hours of sleep" required>
+                            </div>
+                            <div class="mb-6">
+                                <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="entry-mood">Mood</label>
+                                <select id="entry-mood" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" required>
+                                    <option value="">Select your mood</option>
+                                    <option value="Excellent">Excellent</option>
+                                    <option value="Good">Good</option>
+                                    <option value="Average">Average</option>
+                                    <option value="Poor">Poor</option>
+                                    <option value="Terrible">Terrible</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2" for="entry-notes">Notes (optional)</label>
+                                <textarea id="entry-notes" rows="3" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:bg-gray-700 dark:text-white leading-tight focus:outline-none focus:shadow-outline" placeholder="Additional notes..."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="border-t px-6 py-4 flex justify-end">
+                        <button type="button" id="cancel-entry" class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 mr-2">Cancel</button>
+                        <button type="button" id="save-entry" class="px-4 py-2 bg-primary-500 text-white rounded-md hover:bg-primary-600">Save Entry</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white dark:bg-gray-800 shadow-md mt-8 transition-colors duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <p class="text-center text-gray-600 dark:text-gray-400">Wellness Tracker &copy; 2023</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Mock data and state management
+        const state = {
+            currentUser: null,
+            isDarkMode: localStorage.getItem('darkMode') === 'true',
+            entries: JSON.parse(localStorage.getItem('entries')) || [],
+            authView: 'login' // 'login' or 'signup'
+        };
+
+        // DOM Elements
+        const elements = {
+            themeToggle: document.getElementById('theme-toggle'),
+            authButtons: document.getElementById('auth-buttons'),
+            userMenu: document.getElementById('user-menu'),
+            username: document.getElementById('username'),
+            loginBtn: document.getElementById('login-btn'),
+            signupBtn: document.getElementById('signup-btn'),
+            logoutBtn: document.getElementById('logout-btn'),
+            authPages: document.getElementById('auth-pages'),
+            loginForm: document.getElementById('login-form'),
+            signupForm: document.getElementById('signup-form'),
+            dashboard: document.getElementById('dashboard'),
+            doLogin: document.getElementById('do-login'),
+            doSignup: document.getElementById('do-signup'),
+            entriesList: document.getElementById('entries-list'),
+            addEntry: document.getElementById('add-entry'),
+            entryModal: document.getElementById('entry-modal'),
+            cancelEntry: document.getElementById('cancel-entry'),
+            saveEntry: document.getElementById('save-entry'),
+            entryForm: document.getElementById('entry-form'),
+            modalTitle: document.getElementById('modal-title'),
+            exportCsv: document.getElementById('export-csv'),
+            exportPdf: document.getElementById('export-pdf'),
+            latestSteps: document.getElementById('latest-steps'),
+            latestSleep: document.getElementById('latest-sleep'),
+            latestMood: document.getElementById('latest-mood')
+        };
+
+        // Initialize the application
+        function initApp() {
+            // Set initial theme
+            if (state.isDarkMode) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            // Check if user is logged in (mock)
+            const mockUser = localStorage.getItem('currentUser');
+            if (mockUser) {
+                state.currentUser = JSON.parse(mockUser);
+                showDashboard();
+            } else {
+                showAuth();
+            }
+
+            // Generate mock data if no entries exist
+            if (state.entries.length === 0) {
+                generateMockData();
+            }
+
+            updateSummaryCards();
+            renderEntries();
+            initCharts();
+        }
+
+        // Generate mock data for demonstration
+        function generateMockData() {
+            const moods = ['Excellent', 'Good', 'Average', 'Poor', 'Terrible'];
+            const today = new Date();
+            
+            for (let i = 14; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(today.getDate() - i);
+                
+                state.entries.push({
+                    id: 'mock-' + i,
+                    date: date.toISOString().split('T')[0],
+                    steps: Math.floor(Math.random() * 5000) + 3000,
+                    sleep: (Math.random() * 4 + 5).toFixed(1),
+                    mood: moods[Math.floor(Math.random() * moods.length)],
+                    notes: i % 3 === 0 ? 'Felt pretty good today' : ''
+                });
+            }
+            
+            saveEntries();
+        }
+
+        // Authentication functions (mocked)
+        function showAuth() {
+            elements.dashboard.classList.add('hidden');
+            elements.authPages.classList.remove('hidden');
+            
+            if (state.authView === 'login') {
+                showLogin();
+            } else {
+                showSignup();
+            }
+            
+            elements.authButtons.classList.remove('hidden');
+            elements.userMenu.classList.add('hidden');
+        }
+
+        function showLogin() {
+            elements.loginForm.classList.remove('hidden');
+            elements.signupForm.classList.add('hidden');
+            state.authView = 'login';
+        }
+
+        function showSignup() {
+            elements.loginForm.classList.add('hidden');
+            elements.signupForm.classList.remove('hidden');
+            state.authView = 'signup';
+        }
+
+        function showDashboard() {
+            elements.authPages.classList.add('hidden');
+            elements.dashboard.classList.remove('hidden');
+            elements.authButtons.classList.add('hidden');
+            elements.userMenu.classList.remove('hidden');
+            elements.username.textContent = state.currentUser?.name || 'User';
+        }
+
+        function mockLogin(email, password) {
+            // Mock login - in a real app, this would be an API call
+            if (email === 'demo@wellness.com' && password === 'Demo123!') {
+                state.currentUser = {
+                    id: 'user-1',
+                    name: 'Demo User',
+                    email: email
+                };
+                localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                showDashboard();
+            } else {
+                alert('Invalid credentials. Use demo@wellness.com / Demo123!');
+            }
+        }
+
+        function mockSignup(name, email, password) {
+            // Mock signup - in a real app, this would be an API call
+            if (!name || !email || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            if (password !== document.getElementById('signup-confirm').value) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            state.currentUser = {
+                id: 'user-' + Date.now(),
+                name: name,
+                email: email
+            };
+            localStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+            showDashboard();
+        }
+
+        function logout() {
+            state.currentUser = null;
+            localStorage.removeItem('currentUser');
+            showAuth();
+        }
+
+        // Entry management functions
+        function openEntryModal(entry = null) {
+            if (entry) {
+                // Editing existing entry
+                document.getElementById('entry-id').value = entry.id;
+                document.getElementById('entry-date').value = entry.date;
+                document.getElementById('entry-steps').value = entry.steps;
+                document.getElementById('entry-sleep').value = entry.sleep;
+                document.getElementById('entry-mood').value = entry.mood;
+                document.getElementById('entry-notes').value = entry.notes || '';
+                elements.modalTitle.textContent = 'Edit Entry';
+            } else {
+                // Adding new entry
+                document.getElementById('entry-form').reset();
+                document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('entry-id').value = '';
+                elements.modalTitle.textContent = 'Add New Entry';
+            }
+            
+            elements.entryModal.classList.remove('hidden');
+        }
+
+        function saveEntry() {
+            const id = document.getElementById('entry-id').value;
+            const date = document.getElementById('entry-date').value;
+            const steps = document.getElementById('entry-steps').value;
+            const sleep = document.getElementById('entry-sleep').value;
+            const mood = document.getElementById('entry-mood').value;
+            const notes = document.getElementById('entry-notes').value;
+
+            if (!date || !steps || !sleep || !mood) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            if (id) {
+                // Update existing entry
+                const index = state.entries.findIndex(entry => entry.id === id);
+                if (index !== -1) {
+                    state.entries[index] = {
+                        ...state.entries[index],
+                        date,
+                        steps: parseInt(steps),
+                        sleep: parseFloat(sleep),
+                        mood,
+                        notes
+                    };
+                }
+            } else {
+                // Add new entry
+                const newEntry = {
+                    id: 'entry-' + Date.now(),
+                    date,
+                    steps: parseInt(steps),
+                    sleep: parseFloat(sleep),
+                    mood,
+                    notes
+                };
+                state.entries.push(newEntry);
+            }
+
+            saveEntries();
+            renderEntries();
+            updateSummaryCards();
+            initCharts();
+            closeEntryModal();
+        }
+
+        function deleteEntry(id) {
+            if (confirm('Are you sure you want to delete this entry?')) {
+                state.entries = state.entries.filter(entry => entry.id !== id);
+                saveEntries();
+                renderEntries();
+                updateSummaryCards();
+                initCharts();
+            }
+        }
+
+        function saveEntries() {
+            localStorage.setItem('entries', JSON.stringify(state.entries));
+        }
+
+        function renderEntries() {
+            elements.entriesList.innerHTML = '';
+            
+            // Sort entries by date (newest first)
+            const sortedEntries = [...state.entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sortedEntries.forEach(entry => {
+                const entryElement = document.createElement('div');
+                entryElement.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 card-hover';
+                entryElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-gray-800 dark:text-gray-200">${formatDate(entry.date)}</h3>
+                            <div class="mt-2 grid grid-cols-2 gap-4">
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
+                                    <span class="text-gray-600 dark:text-gray-400">${entry.steps} steps</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                                    </svg>
+                                    <span class="text-gray-600 dark:text-gray-400">${entry.sleep} hrs sleep</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="text-gray-600 dark:text-gray-400">${entry.mood}</span>
+                                </div>
+                            </div>
+                            ${entry.notes ? `<p class="mt-3 text-gray-600 dark:text-gray-400">${entry.notes}</p>` : ''}
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="edit-entry p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-full" data-id="${entry.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button class="delete-entry p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-full" data-id="${entry.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                elements.entriesList.appendChild(entryElement);
+            });
+
+            // Add event listeners to edit and delete buttons
+            document.querySelectorAll('.edit-entry').forEach(button => {
+                button.addEventListener('click', () => {
+                    const entryId = button.getAttribute('data-id');
+                    const entry = state.entries.find(e => e.id === entryId);
+                    if (entry) openEntryModal(entry);
+                });
+            });
+
+            document.querySelectorAll('.delete-entry').forEach(button => {
+                button.addEventListener('click', () => {
+                    const entryId = button.getAttribute('data-id');
+                    deleteEntry(entryId);
+                });
+            });
+        }
+
+        function updateSummaryCards() {
+            if (state.entries.length > 0) {
+                // Sort entries by date (newest first)
+                const sortedEntries = [...state.entries].sort((a, b) => new Date(b.date) - new Date(a.date));
+                const latestEntry = sortedEntries[0];
+                
+                elements.latestSteps.textContent = latestEntry.steps.toLocaleString();
+                elements.latestSleep.textContent = latestEntry.sleep;
+                elements.latestMood.textContent = latestEntry.mood;
+            }
+        }
+
+        function closeEntryModal() {
+            elements.entryModal.classList.add('hidden');
+        }
+
+        function initCharts() {
+            // Prepare data for charts (last 7 days)
+            const lastWeekEntries = [...state.entries]
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(-7);
+            
+            const dates = lastWeekEntries.map(entry => formatDate(entry.date, true));
+            const stepsData = lastWeekEntries.map(entry => entry.steps);
+            const sleepData = lastWeekEntries.map(entry => entry.sleep);
+            
+            // Steps chart
+            const stepsCtx = document.getElementById('steps-chart').getContext('2d');
+            if (window.stepsChart) {
+                window.stepsChart.destroy();
+            }
+            window.stepsChart = new Chart(stepsCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Steps',
+                        data: stepsData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: state.isDarkMode ? '#e5e7eb' : '#374151'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: state.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: state.isDarkMode ? '#e5e7eb' : '#374151'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: state.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: state.isDarkMode ? '#e5e7eb' : '#374151'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Sleep chart
+            const sleepCtx = document.getElementById('sleep-chart').getContext('2d');
+            if (window.sleepChart) {
+                window.sleepChart.destroy();
+            }
+            window.sleepChart = new Chart(sleepCtx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Sleep Hours',
+                        data: sleepData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: '#10b981',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: state.isDarkMode ? '#e5e7eb' : '#374151'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: state.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: state.isDarkMode ? '#e5e7eb' : '#374151'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: state.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                            },
+                            ticks: {
+                                color: state.isDarkMode ? '#e5e7eb' : '#374151'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportToCSV() {
+            const headers = ['Date', 'Steps', 'Sleep Hours', 'Mood', 'Notes'];
+            const csvData = state.entries.map(entry => [
+                entry.date,
+                entry.steps,
+                entry.sleep,
+                entry.mood,
+                entry.notes || ''
+            ]);
+            
+            let csvContent = 'data:text/csv;charset=utf-8,';
+            csvContent += headers.join(',') + '\n';
+            csvData.forEach(row => {
+                csvContent += row.map(field => `"${field}"`).join(',') + '\n';
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'wellness_entries.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportToPDF() {
+            // For simplicity, we'll just show an alert since jsPDF is complex to implement fully
+            alert('PDF export functionality would be implemented here with jsPDF library');
+        }
+
+        // Utility functions
+        function formatDate(dateString, short = false) {
+            const date = new Date(dateString);
+            return short 
+                ? date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                : date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Event listeners
+        elements.themeToggle.addEventListener('click', () => {
+            state.isDarkMode = !state.isDarkMode;
+            localStorage.setItem('darkMode', state.isDarkMode);
+            
+            if (state.isDarkMode) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            
+            // Reinitialize charts with new theme colors
+            initCharts();
+        });
+
+        elements.loginBtn.addEventListener('click', showLogin);
+        elements.signupBtn.addEventListener('click', showSignup);
+        elements.logoutBtn.addEventListener('click', logout);
+
+        elements.doLogin.addEventListener('click', () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!email || !password) {
+                alert('Please enter both email and password');
+                return;
+            }
+            
+            mockLogin(email, password);
+        });
+
+        elements.doSignup.addEventListener('click', () => {
+            const name = document.getElementById('signup-name').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            
+            if (!name || !email || !password || !confirm) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            if (password !== confirm) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            mockSignup(name, email, password);
+        });
+
+        elements.addEntry.addEventListener('click', () => openEntryModal());
+        elements.cancelEntry.addEventListener('click', closeEntryModal);
+        elements.saveEntry.addEventListener('click', saveEntry);
+        elements.exportCsv.addEventListener('click', exportToCSV);
+        elements.exportPdf.addEventListener('click', exportToPDF);
+
+        // Close modal when clicking outside
+        elements.entryModal.addEventListener('click', (e) => {
+            if (e.target === elements.entryModal) {
+                closeEntryModal();
+            }
+        });
+
+        // Initialize the application
+        initApp();
+    </script>
+</body>
+</html>
